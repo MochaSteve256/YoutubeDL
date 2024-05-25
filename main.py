@@ -2,28 +2,42 @@ import os
 from pytube import YouTube, Playlist
 import re
 import string
+
+def prompt_music():
+    try:
+        music = input("Is this a music download? (y/n)\n")
+    except KeyboardInterrupt:
+        exit()
+    if music == "y":
+        return True
+    elif music == "n":
+        return False
+    else:
+        return prompt_music()
+
+def download_video(link, music):
+    yt = YouTube(link)
+    print("Downloading: " + yt.title)
+    if not music:
+        os.chdir(os.path.expanduser("~/Videos/YouTube"))
+        yt.streams.filter(progressive=True, file_extension="mp4").order_by("resolution").desc().first().download()
+    else:
+        os.chdir(os.path.expanduser("~/Music/YouTube"))
+        yt.streams.filter(only_audio=True).order_by("abr").desc().first().download()
+
 try:
-    alreadyRun = False
-    while 1:
-        link = input("Video/Playlist URL: \n")
-        music = 0
-        def prompt():
-            global music
-            music = input("Is this a music download? (y/n)\n")
-            if music == "y":
-                music = True
-            elif music == "n":
-                music = False
-            else:
-                prompt()
-        #prompt()
-        music = False
-        if not alreadyRun:
-            if music:
-                os.chdir("../../../Music/YouTube")
-            else:
-                os.chdir("../../../Videos/YouTube")
-        alreadyRun = True
+    while True:
+        try:
+            link = input("Video/Playlist URL: \n")
+        except KeyboardInterrupt:
+            exit()
+        
+        if not link.find("youtu") > 0:
+            print("Invalid link!")
+            continue
+        
+        music = prompt_music()
+        
         try:
             if "playlist" in link:
                 pl = Playlist(link)
@@ -39,19 +53,9 @@ try:
                 os.system("mkdir " + '"'  + a + '"')
                 os.chdir(a)
                 for v in pl.video_urls:
-                    yt = YouTube(v)
-                    print("Downloading: " + yt.title)
-                    if not music:
-                        yt.streams.filter(progressive=True, file_extension="mp4").order_by("resolution").desc().first().download()
-                    else:
-                        yt.streams.filter(only_audio=True).desc().first().download()
+                    download_video(v, music)
             else:
-                yt = YouTube(link)
-                print("Downloading: " + yt.title)
-                if not music:
-                    yt.streams.filter(progressive=True, file_extension="mp4").order_by("resolution").desc().first().download()
-                else:
-                    yt.streams.filter(only_audio=True).desc().first().download()
+                download_video(link, music)
         except Exception as e:
             print("Failed with an exception: " + str(e))
             print("Done!")
